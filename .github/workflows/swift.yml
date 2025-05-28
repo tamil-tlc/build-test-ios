@@ -1,52 +1,51 @@
-name: swift ci
+name: Swift CI
 
 on:
- push:
-  branches: [ "main", "dev", "qa" ]
- pull_request:
-  branches: [ "main", "dev", "qa", "feature/*", "realese/*" ]
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
- lint:
-  runs-on: macos-latest
+  lint:
+    name: Lint Code
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-  steps:
-   - name: checkout the code
-     uses: actions/checkout@v4
+      - name: Install SwiftLint
+        run: |
+          brew install swiftlint
 
-   - name: install swiftlint
-     run: brew install swiftlint
+      - name: Run SwiftLint
+        run: |
+          swiftlint
 
-   - name: run swiftlint
-     run: swiftlint
+  test:
+    name: Run Unit Tests
+    runs-on: macos-latest
+    needs: lint
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-
- unit-test:
-  needs: [lint]
-  runs-on: macos-latest
-
-  steps:
-   - name: checkout the code
-     uses: actions/checkout@v4
-
-   - name: Run Tests
-     run: |
+      - name: Run Tests
+        run: |
           xcodebuild test -scheme YourAppScheme -destination 'platform=iOS Simulator,name=iPhone 14,OS=latest'
 
- build:
-  needs: [lint, unit-test]
-  runs-on: macos-latest
+  build:
+    name: Build App
+    runs-on: macos-latest
+    needs: test
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-  steps:
-   - name: checkout the code
-     uses: actions/checkout@4
-
-   - name: Build App
-     run: |
+      - name: Build App
+        run: |
           xcodebuild build -scheme YourAppScheme -destination 'platform=iOS Simulator,name=iPhone 14,OS=latest'
- 
- 
- 
+
   
     
    
