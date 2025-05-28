@@ -45,8 +45,3 @@ jobs:
       - name: Build App
         run: |
           xcodebuild build -scheme YourAppScheme -destination 'platform=iOS Simulator,name=iPhone 14,OS=latest'
-
-  
-    
-   
-
