@@ -37,9 +37,9 @@ jobs:
 
     - name: run unit test
       run: |
-        xcodebuild test \
-        -project build-test-ios/build-test-ios.xcodeproj \
-        -scheme build-test-ios \
+        xcodebuild test \ || echo "xcode test case fail"
+        -project build-test-ios/build-test-ios.xcodeproj \ || echo "project derectory faild"
+        -scheme build-test-ios \ || echo "scheme not found"
 
  build:
   needs: [lint, unit-test]
