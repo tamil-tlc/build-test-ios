@@ -28,14 +28,13 @@ jobs:
    steps:
     - name: checkout the code
       uses: actions/checkout@v4
-
-
-    - name: Run unit tests
+  
+    - name: Run Tests
       run: |
           xcodebuild test \
             -project build-test-ios.xcodeproj \
             -scheme build-test-ios \
-            
+            -destination 'platform=iOS Simulator,name=iPhone 14'
 
  build:
   needs: [lint, unit-test]
