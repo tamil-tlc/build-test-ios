@@ -1,6 +1,6 @@
 import Testing
 @testable import build_test_ios
-struct build_test_iosTests {
+struct BuildTestIosTests {
     @Test func example() async throws {
     }
 }
