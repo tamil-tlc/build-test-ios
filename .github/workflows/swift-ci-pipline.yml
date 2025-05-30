@@ -29,23 +29,13 @@ jobs:
     - name: checkout the code
       uses: actions/checkout@v4
 
-    - name: Select Xcode Version
-      run: sudo xcode-select -s /Applications/Xcode_15.4.app
 
-    - name: Show available simulators (debugging)
-      run: xcrun xctrace list devices
-
-    - name: List repo contents
-      run: ls -R
-
-    - name: Check for incompatible project file version
+    - name: Run unit tests
       run: |
-         if grep -q 'objectVersion = 60;' build-test-ios.xcodeproj/project.pbxproj; then
-         echo "✅ Compatible project version (Xcode 15)"
-         else
-         echo "❌ Project uses a newer Xcode version format. Please downgrade in Xcode 15."
-         exit 1
-         fi
+          xcodebuild test \
+            -project build-test-ios.xcodeproj \
+            -scheme build-test-ios \
+            
 
  build:
   needs: [lint, unit-test]
