@@ -35,6 +35,9 @@ jobs:
     - name: Show available simulators (debugging)
       run: xcrun xctrace list devices
 
+    - name: List repo contents
+      run: ls -R
+
     - name: run unit test
       run: |
         xcodebuild test \ || echo "xcode test case fail"
