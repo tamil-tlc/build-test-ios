@@ -18,7 +18,7 @@ jobs:
      run: brew install swiftlint
 
    - name: run swiftlint
-     run: swiftlint || echo "linting issue is there"
+     run: swiftlint 
 
 
  unit-test:
@@ -49,8 +49,8 @@ jobs:
    - name: checkout the code
      uses: actions/checkout@v4
 
-   - name: select xcode version
-     run: sudo xcode-select-s/applications/xcode_15.4.app
+   - name: Select Xcode Version
+     run: sudo xcode-select -s /Applications/Xcode_15.4.app
 
    - name: built the swift code
      run: |
