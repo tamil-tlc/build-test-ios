@@ -68,4 +68,4 @@ jobs:
        xcodebuild clean build \
        -project build-test-ios.xcodeproj \
        -scheme build-test-ios \
-       -destination "platform=iOS Simulator,name=iPhone 15,OS=15.1"
+       -destination "id=8A897D71-AFE1-42FF-B5F4-0F08ADED6B1B"
