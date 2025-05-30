@@ -22,7 +22,7 @@ jobs:
 
 
  test:
-    needs: [lint, build]
+    needs: [lint]
     runs-on: macos-latest
     
     steps:
@@ -51,7 +51,7 @@ jobs:
         path: TestResults.xcresult
 
  build:
-  needs: [lint]
+  needs: [lint, test]
   runs-on: macos-latest
 
   steps:
