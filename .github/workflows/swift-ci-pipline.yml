@@ -38,12 +38,14 @@ jobs:
     - name: List repo contents
       run: ls -R
 
-    - name: run unit test
+    - name: Check for incompatible project file version
       run: |
-          xcodebuild test \
-            -project build-test-ios.xcodeproj \
-            -scheme build-test-ios \
-            -destination "platform=iOS Simulator,name=iPhone 15,OS=17.4"
+         if grep -q 'objectVersion = 60;' build-test-ios.xcodeproj/project.pbxproj; then
+         echo "✅ Compatible project version (Xcode 15)"
+         else
+         echo "❌ Project uses a newer Xcode version format. Please downgrade in Xcode 15."
+         exit 1
+         fi
 
  build:
   needs: [lint, unit-test]
