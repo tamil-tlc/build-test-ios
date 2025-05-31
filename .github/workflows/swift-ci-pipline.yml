@@ -1,71 +1,176 @@
-name: swift ci
+name: Swift CI
 
 on:
- push:
-  branches: [ "main", "dev", "qa" ]
- pull_request:
-  branches: [ "main", "dev", "qa", "feature/*", "release/*" ]
+  push:
+    branches: [ "main", "dev", "qa" ]
+  pull_request:
+    branches: [ "main", "dev", "qa", "feature/*", "release/*" ]
+
+env:
+  XCODE_VERSION: '16.1.0'
+  PROJECT_NAME: 'build-test-ios'
+  SCHEME_NAME: 'build-test-ios'
 
 jobs:
- lint:
-  runs-on: macos-latest
+  lint:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Cache SwiftLint
+        uses: actions/cache@v4
+        with:
+          path: /usr/local/bin/swiftlint
+          key: swiftlint-${{ runner.os }}
+          
+      - name: Install SwiftLint
+        run: |
+          if ! command -v swiftlint &> /dev/null; then
+            brew install swiftlint
+          fi
+          
+      - name: Run SwiftLint
+        run: |
+          swiftlint lint --reporter github-actions-logging
+          
+      - name: Upload SwiftLint Results
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: swiftlint-results
+          path: swiftlint-report.json
 
-  steps:
-   - name: checkout the code
-     uses: actions/checkout@v4
-
-   - name: install swiftlint
-     run: brew install swiftlint
-
-   - name: run swiftlint
-     run: swiftlint 
-
-
- test:
+  test:
     needs: [lint]
     runs-on: macos-latest
+    strategy:
+      matrix:
+        destination: 
+          - "platform=iOS Simulator,name=iPhone 15,OS=18.1"
+          - "platform=iOS Simulator,name=iPad (10th generation),OS=18.1"
     
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Setup Xcode 16
-      uses: maxim-lobanov/setup-xcode@v1
-      with:
-        xcode-version: '16.1.0'
+      - name: Checkout code
+        uses: actions/checkout@v4
         
-    - name: Build and Test
-      run: |
-        xcodebuild test \
-          -project build-test-ios.xcodeproj \
-          -scheme build-test-ios \
-          -resultBundlePath TestResults \
-          -destination "platform=iOS Simulator,name=iPad (10th generation),OS=18.1" \
-          CODE_SIGNING_REQUIRED=NO
-          CODE_SIGNING_ALLOWED=NO
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: ${{ env.XCODE_VERSION }}
           
-    - name: Upload Test Results
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: test-results
-        path: TestResults.xcresult
+      - name: Cache derived data
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Developer/Xcode/DerivedData
+          key: ${{ runner.os }}-derived-data-${{ hashFiles('**/*.xcodeproj') }}
+          restore-keys: |
+            ${{ runner.os }}-derived-data-
+            
+      - name: List available simulators
+        run: xcrun simctl list devices available
+        
+      - name: Build and Test
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -project ${{ env.PROJECT_NAME }}.xcodeproj \
+            -scheme ${{ env.SCHEME_NAME }} \
+            -destination "${{ matrix.destination }}" \
+            -resultBundlePath TestResults-${{ strategy.job-index }} \
+            -enableCodeCoverage YES \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            ONLY_ACTIVE_ARCH=YES \
+            | xcpretty --report junit --output test-results.xml
+            
+      - name: Upload Test Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-${{ strategy.job-index }}
+          path: |
+            TestResults-${{ strategy.job-index }}.xcresult
+            test-results.xml
+            
+      - name: Upload Coverage Reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-reports-${{ strategy.job-index }}
+          path: TestResults-${{ strategy.job-index }}.xcresult
 
- build:
-  needs: [lint, test]
-  runs-on: macos-latest
-
-  steps:
-   - name: checkout the code
-     uses: actions/checkout@v4
-
-   - name: Setup Xcode 16
-     uses: maxim-lobanov/setup-xcode@v1
-     with:
-        xcode-version: '16.1.0'
-
-   - name: Build the Swift code
-     run: |
-       xcodebuild clean build \
-       -project build-test-ios.xcodeproj \
-       -scheme build-test-ios \
-       -destination "id=8A897D71-AFE1-42FF-B5F4-0F08ADED6B1B"
+  build:
+    needs: [lint, test]
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        configuration: [Debug, Release]
+        
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: ${{ env.XCODE_VERSION }}
+          
+      - name: Cache derived data
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Developer/Xcode/DerivedData
+          key: ${{ runner.os }}-derived-data-${{ matrix.configuration }}-${{ hashFiles('**/*.xcodeproj') }}
+          restore-keys: |
+            ${{ runner.os }}-derived-data-${{ matrix.configuration }}-
+            ${{ runner.os }}-derived-data-
+            
+      - name: Build for iOS Simulator
+        run: |
+          set -o pipefail
+          xcodebuild clean build \
+            -project ${{ env.PROJECT_NAME }}.xcodeproj \
+            -scheme ${{ env.SCHEME_NAME }} \
+            -configuration ${{ matrix.configuration }} \
+            -destination "platform=iOS Simulator,name=iPhone 15,OS=18.1" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            ONLY_ACTIVE_ARCH=YES \
+            | xcpretty
+            
+      - name: Build for Generic iOS Device
+        if: matrix.configuration == 'Release'
+        run: |
+          set -o pipefail
+          xcodebuild clean build \
+            -project ${{ env.PROJECT_NAME }}.xcodeproj \
+            -scheme ${{ env.SCHEME_NAME }} \
+            -configuration ${{ matrix.configuration }} \
+            -destination "generic/platform=iOS" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            | xcpretty
+            
+      - name: Create Archive (Release only)
+        if: matrix.configuration == 'Release'
+        run: |
+          set -o pipefail
+          xcodebuild archive \
+            -project ${{ env.PROJECT_NAME }}.xcodeproj \
+            -scheme ${{ env.SCHEME_NAME }} \
+            -configuration ${{ matrix.configuration }} \
+            -destination "generic/platform=iOS" \
+            -archivePath build/${{ env.SCHEME_NAME }}.xcarchive \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            | xcpretty
+            
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        if: matrix.configuration == 'Release'
+        with:
+          name: build-artifacts-${{ matrix.configuration }}
+          path: |
+            build/${{ env.SCHEME_NAME }}.xcarchive
+            ~/Library/Developer/Xcode/DerivedData/**/Build/Products/Release-iphoneos/
+            
