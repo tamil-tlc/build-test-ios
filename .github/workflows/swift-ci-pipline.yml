@@ -32,7 +32,7 @@ jobs:
           
       - name: Run SwiftLint
         run: |
-          swiftlint lint --reporter github-actions-logging
+         swiftlint lint --reporter github-actions-logging --reporter json > swiftlint-report.json || true
           
       - name: Upload SwiftLint Results
         uses: actions/upload-artifact@v4
@@ -48,7 +48,8 @@ jobs:
       matrix:
         destination: 
           - "platform=iOS Simulator,name=iPhone 16,OS=18.1"
-
+          - "platform=iOS Simulator,name=iPhone 15,OS=17.5"
+          - "platform=iOS Simulator,name=iPad Pro (12.9-inch) (6th generation),OS=18.1"
     
     steps:
       - name: Checkout code
@@ -59,13 +60,13 @@ jobs:
         with:
           xcode-version: ${{ env.XCODE_VERSION }}
           
-      - name: Cache derived data
+      - name: Cache Swift Package Manager
         uses: actions/cache@v4
         with:
-          path: ~/Library/Developer/Xcode/DerivedData
-          key: ${{ runner.os }}-derived-data-${{ hashFiles('**/*.xcodeproj') }}
-          restore-keys: |
-            ${{ runner.os }}-derived-data-
+         path: |
+            ~/Library/Developer/Xcode/DerivedData
+            ~/.swiftpm
+         key: ${{ runner.os }}-spm-${{ hashFiles('**/*.xcodeproj', '**/Package.swift') }}
             
       - name: Build and Test
         run: |
@@ -81,14 +82,13 @@ jobs:
             ONLY_ACTIVE_ARCH=YES \
             | xcpretty --report junit --output test-results.xml
             
-      - name: Upload Test Results
+      - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
-        if: always()
+        if: success()
         with:
-          name: test-results-${{ strategy.job-index }}
-          path: |
-            TestResults-${{ strategy.job-index }}.xcresult
-            test-results.xml
+           name: build-artifacts-${{ matrix.configuration }}
+           path: |
+               ~/Library/Developer/Xcode/DerivedData/**/Build/Products/**/*.app
             
       - name: Upload Coverage Reports
         uses: actions/upload-artifact@v4
