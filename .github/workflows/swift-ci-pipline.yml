@@ -47,7 +47,7 @@ jobs:
     strategy:
       matrix:
         destination: 
-          - "platform=macOS,arch=x86_64"
+          - "platform=iOS Simulator,name=iPhone 16,OS=18.1"
 
     
     steps:
@@ -67,9 +67,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-derived-data-
             
-      - name: List available simulators
-        run: xcrun simctl list devices available
-        
       - name: Build and Test
         run: |
           set -o pipefail
