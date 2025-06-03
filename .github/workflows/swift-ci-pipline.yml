@@ -132,4 +132,56 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             ONLY_ACTIVE_ARCH=YES \
             | xcpretty
+
+  version-and-release:
+    needs: [build]
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set version from Info.plist
+        id: bump_version
+        run: |
+          plist="YourApp/Info.plist"  # 🔁 Replace with correct path
+          version=$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" "$plist")
+          IFS='.' read -r major minor patch <<< "$version"
+          patch=$((patch + 1))
+          new_version="$major.$minor.$patch"
+          echo "Bumping version: $version → $new_version"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $new_version" "$plist"
+          build_number=$(date +%s)
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $build_number" "$plist"
+          echo "version=$new_version" >> $GITHUB_OUTPUT
+          echo "build=$build_number" >> $GITHUB_OUTPUT
+
+      - name: Commit and push version bump
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add .
+          git commit -m "Bump version to ${{ steps.bump_version.outputs.version }} (build ${{ steps.bump_version.outputs.build }}) [skip ci]" || echo "No changes to commit"
+          git push
+
+      - name: Generate release notes
+        run: |
+          last_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -z "$last_tag" ]; then
+            notes=$(git log --pretty=format:"* %s (%an)")
+          else
+            notes=$(git log "$last_tag"..HEAD --pretty=format:"* %s (%an)")
+          fi
+          echo "RELEASE_NOTES<<EOF" >> $GITHUB_ENV
+          echo "$notes" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.bump_version.outputs.version }}
+          name: v${{ steps.bump_version.outputs.version }}
+          body: ${{ env.RELEASE_NOTES }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
             
