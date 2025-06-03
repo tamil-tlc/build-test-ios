@@ -12,18 +12,28 @@ jobs:
   lint:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/cache@v4
-        with:
+     - name: checkout the code
+       uses: actions/checkout@v4
+       
+     - name: used cache for stored 
+       uses: actions/cache@v4
+       with:
           path: /usr/local/bin/swiftlint
           key: swiftlint-${{ runner.os }}
-      - run: brew install swiftlint
-      - run: swiftlint lint --reporter github-actions-logging --reporter json > swiftlint-report.json || true
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: swiftlint-report
-          path: swiftlint-report.json
+          
+     - name: install swiftlint
+       run: brew install swiftlint
+        
+     - name: Run swiftlint
+       run: swiftlint lint --reporter github-actions-logging --reporter json > swiftlint-report.json || true
+        
+     - name: upload artifact
+       uses: actions/upload-artifact@v4
+       if: always()
+       with:
+        name: swiftlint-report
+        path: swiftlint-report.json
+          
   test:
     needs: [lint]
     runs-on: macos-latest
@@ -32,23 +42,44 @@ jobs:
         destination: 
           - "platform=iOS Simulator,name=iPhone 16,OS=18.1"
           - "platform=iOS Simulator,name=iPad (10th generation),OS=18.1"
+          
     steps:
-      - uses: actions/checkout@v4
-      - uses: maxim-lobanov/setup-xcode@v1
-        with:
-          xcode-version: ${{ env.XCODE_VERSION }}
-      - uses: actions/cache@v4
-        with:
-          path: ~/Library/Developer/Xcode/DerivedData
-          key: ${{ runner.os }}-derived-data-${{ hashFiles('**/*.xcodeproj') }}
-      - run: xcodebuild test -project ${{ env.PROJECT_NAME }}.xcodeproj -scheme ${{ env.SCHEME_NAME }} -destination "${{ matrix.destination }}" -resultBundlePath TestResults-${{ strategy.job-index }} -enableCodeCoverage YES CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO ONLY_ACTIVE_ARCH=YES | xcpretty --report junit --output test-results.xml
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
+     - name: checkout the code
+       uses: actions/checkout@v4
+
+     - name: set up xcode version
+       uses: maxim-lobanov/setup-xcode@v1
+       with:
+         xcode-version: ${{ env.XCODE_VERSION }}
+
+     - name: used cache stored
+       uses: actions/cache@v4
+       with:
+        path: ~/Library/Developer/Xcode/DerivedData
+        key: ${{ runner.os }}-derived-data-${{ hashFiles('**/*.xcodeproj') }}
+          
+     - name: test swift code     
+       run: |
+          xcodebuild test \
+          -project ${{ env.PROJECT_NAME }}.xcodeproj \ 
+          -scheme ${{ env.SCHEME_NAME }} \
+          -destination "${{ matrix.destination }}" \
+          -resultBundlePath TestResults-${{ strategy.job-index }} \
+          -enableCodeCoverage YES \
+          CODE_SIGNING_REQUIRED=NO \
+          CODE_SIGNING_ALLOWED=NO \
+          ONLY_ACTIVE_ARCH=YES \
+          | xcpretty --report junit --output test-results.xml
+
+     - name: upload artifact 
+       uses: actions/upload-artifact@v4
+       if: always()
+       with:
           name: test-results-${{ strategy.job-index }}
           path: |
             TestResults-${{ strategy.job-index }}.xcresult
             test-results.xml
+            
   build:
     needs: [lint, test]
     runs-on: macos-latest
@@ -56,12 +87,28 @@ jobs:
       matrix:
         configuration: [Debug, Release]
     steps:
-      - uses: actions/checkout@v4
-      - uses: maxim-lobanov/setup-xcode@v1
-        with:
+     - name: checkout the code
+       uses: actions/checkout@v4
+       
+     - name: set up xcode version
+       uses: maxim-lobanov/setup-xcode@v1
+       with:
           xcode-version: ${{ env.XCODE_VERSION }}
-      - uses: actions/cache@v4
-        with:
+          
+     - name: used cache for stored
+       uses: actions/cache@v4
+       with:
           path: ~/Library/Developer/Xcode/DerivedData
           key: ${{ runner.os }}-derived-data-${{ matrix.configuration }}-${{ hashFiles('**/*.xcodeproj') }}
-      - run: xcodebuild clean build -project ${{ env.PROJECT_NAME }}.xcodeproj -scheme ${{ env.SCHEME_NAME }} -configuration ${{ matrix.configuration }} -destination "platform=iOS Simulator,name=iPhone 16,OS=18.1" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO ONLY_ACTIVE_ARCH=YES | xcpretty
+          
+     - name: build swift code
+       run: |
+         xcodebuild clean build \
+         -project ${{ env.PROJECT_NAME }}.xcodeproj \
+         -scheme ${{ env.SCHEME_NAME }} \
+         -configuration ${{ matrix.configuration }} \
+         -destination "platform=iOS Simulator,name=iPhone 16,OS=18.1" \
+         CODE_SIGNING_REQUIRED=NO \
+         CODE_SIGNING_ALLOWED=NO \
+         ONLY_ACTIVE_ARCH=YES \
+         | xcpretty 
