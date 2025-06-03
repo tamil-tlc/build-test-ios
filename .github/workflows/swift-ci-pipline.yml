@@ -144,7 +144,7 @@ jobs:
       - name: Set version from Info.plist
         id: bump_version
         run: |
-          plist="YourApp/Info.plist"  # 🔁 Replace with correct path
+          plist="build-test-ios/Info.plist"  # 🔁 Replace with correct path
           version=$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" "$plist")
           IFS='.' read -r major minor patch <<< "$version"
           patch=$((patch + 1))
