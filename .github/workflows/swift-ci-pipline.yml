@@ -48,11 +48,7 @@ jobs:
       matrix:
         destination: 
           - "platform=iOS Simulator,name=iPhone 16,OS=18.1"
-          - "platform=iOS Simulator,name=iPhone 16 Plus,OS=18.1" 
-          - "platform=iOS Simulator,name=iPhone 16 Pro,OS=18.1"
-          - "platform=iOS Simulator,name=iPhone 16 Pro Max,OS=18.1"
-          
-    
+           
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
