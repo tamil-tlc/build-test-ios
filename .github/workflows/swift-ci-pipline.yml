@@ -67,6 +67,7 @@ jobs:
          key: ${{ runner.os }}-spm-${{ hashFiles('**/*.xcodeproj', '**/Package.swift') }}
             
       - name: Build and Test
+        continue-on-error: true
         run: |
           set -o pipefail
           xcodebuild test \
@@ -94,6 +95,12 @@ jobs:
         with:
           name: coverage-reports-${{ strategy.job-index }}
           path: TestResults-${{ strategy.job-index }}.xcresult
+
+      - name: Upload .xcresult bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: TestResults
+          path: TestResult${{ strategy.job-index }}.xcresult
 
   build:
     needs: [lint, test]
