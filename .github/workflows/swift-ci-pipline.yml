@@ -11,6 +11,9 @@ env:
   PROJECT_NAME: 'build-test-ios'
   SCHEME_NAME: 'build-test-ios'
 
+permissions:
+  contents: write
+
 jobs:
   lint:
     runs-on: macos-latest
