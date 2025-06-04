@@ -179,5 +179,5 @@ jobs:
           name: v${{ steps.bump_version.outputs.version }}
           body: ${{ env.RELEASE_NOTES }}
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
             
