@@ -70,7 +70,6 @@ jobs:
          key: ${{ runner.os }}-spm-${{ hashFiles('**/*.xcodeproj', '**/Package.swift') }}
             
       - name: Build and Test
-        continue-on-error: true
         run: |
           set -o pipefail
           xcodebuild test \
