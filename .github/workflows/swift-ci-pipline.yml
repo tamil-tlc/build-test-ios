@@ -183,13 +183,11 @@ jobs:
           PROJECT="${{ env.PROJECT_NAME }}"
 
           if [[ "$BRANCH_NAME" == "dev" ]]; then
-  
             NOTES="Release for DEV branch\n\nProject: $PROJECT\nVersion: $VERSION\n\nCommits:\n"
             NOTES+=$(git log --pretty=format:"- %h %s (%an)" -10)
           elif [[ "$BRANCH_NAME" == "qa" ]]; then
             NOTES="QA Release\n\nProject: $PROJECT\nVersion: $VERSION"
           else
-          
             NOTES="Production release version $VERSION"
           fi
 
