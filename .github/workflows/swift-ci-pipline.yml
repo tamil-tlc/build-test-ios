@@ -46,7 +46,6 @@ jobs:
 
   test:
     needs: [lint]
-    continue-on-error: true
     runs-on: macos-latest
     strategy:
       matrix:
@@ -107,7 +106,6 @@ jobs:
 
   build:
     needs: [lint, test]
-    continue-on-error: true
     runs-on: macos-latest
     strategy:
       matrix:
